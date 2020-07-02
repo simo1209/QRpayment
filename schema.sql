@@ -1,21 +1,17 @@
-CREATE TABLE IF NOT EXISTS card_holders
+CREATE TABLE IF NOT EXISTS accounts
 (
     id      SERIAL PRIMARY KEY,
     f_name  VARCHAR(255),
+    email   VARCHAR(255),
     l_name  VARCHAR(255),
-    balance NUMERIC CHECK ( balance > 0 )
-);
-
-CREATE TABLE IF NOT EXISTS merchants
-(
-    id      SERIAL PRIMARY KEY,
-    name    VARCHAR(255),
-    balance NUMERIC CHECK ( balance > 0 )
+    balance NUMERIC CHECK ( balance >= 0 )
 );
 
 CREATE TABLE IF NOT EXISTS transactions
 (
-    merchant_id    INTEGER REFERENCES merchants(id),
-    card_holder_id INTEGER REFERENCES card_holders(id),
-    amount         NUMERIC CHECK ( amount > 0 )
+    id        SERIAL PRIMARY KEY,
+    buyer_id  INTEGER REFERENCES accounts (id),
+    seller_id INTEGER REFERENCES accounts (id),
+    status    VARCHAR(3),
+    amount    NUMERIC CHECK ( amount > 0 )
 )

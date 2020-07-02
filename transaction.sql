@@ -1,10 +1,19 @@
 BEGIN;
-INSERT INTO transactions(merchant_id, card_holder_id, amount)
-VALUES (1, 3, 400);
-UPDATE card_holders
+
+UPDATE accounts
 SET balance = balance - 400
-WHERE id = 3;
-UPDATE merchants
+WHERE id = 2;
+
+INSERT INTO transactions(buyer_id, amount, status)
+VALUES (2, 400, 'PEN')
+RETURNING id;
+
+UPDATE accounts
 SET balance = balance + 400
 WHERE id = 1;
+
+UPDATE transactions
+SET seller_id = 1, status = 'COM'
+WHERE id = 2;
+
 COMMIT;
