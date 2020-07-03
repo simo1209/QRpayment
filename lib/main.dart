@@ -89,7 +89,9 @@ class _MyHomePageState extends State<MyHomePage> {
           // center the children vertically; the main axis here is the vertical
           // axis because Columns are vertical (the cross axis would be
           // horizontal).
-          children: <Widget>[],
+          children: <Widget>[
+            Text('$transaction')
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -104,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
     String data = await scanner.scan(); // Read the QR encoded string
     final client = HttpClient();
     final request =
-        await client.postUrl(Uri.parse("http://192.168.0.101:5000/transfer"));
+    await client.postUrl(Uri.parse("http://192.168.0.101:5000/transfer"));
     request.headers.set(HttpHeaders.contentTypeHeader, "plain/text");
     request.write(data); // Write the QR encoded string as the post request body
     final response = await request.close();
