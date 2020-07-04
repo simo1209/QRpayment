@@ -1,5 +1,6 @@
 import psycopg2
 import psycopg2.pool
+from psycopg2.extras import RealDictCursor
 
 import click
 from flask import current_app, g
@@ -9,7 +10,8 @@ from flask.cli import with_appcontext
 def get_db():
     if 'db' not in g:
         g.db = psycopg2.pool.ThreadedConnectionPool(1,20,
-            current_app.config['DATABASE']
+            current_app.config['DATABASE'],
+            cursor_factory=RealDictCursor
         )
 
     return g.db

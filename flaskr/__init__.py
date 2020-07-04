@@ -27,11 +27,9 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    # a simple page that says hello
-    @app.route('/transfer', methods=['POST'])
-    def hello():
-        return 'You sent me: ' + request.data.decode('utf-8')
-
     db.init_app(app)
+
+    from . import auth
+    app.register_blueprint(auth.bp)
 
     return app
