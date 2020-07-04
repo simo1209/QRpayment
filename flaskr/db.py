@@ -18,10 +18,8 @@ def init_db():
     db = get_db()
 
     with current_app.open_resource('schema.sql') as f: # Fix nested 'with' statements 
-        with db.getconn() as conn:
-            with conn.curson() as curr:
-                curr.executescript(f.read().decode('utf8'))
-            db.putconn(conn)
+        with DB() as db:
+            db.execute(f.read().decode('utf8'))
 
 @click.command('init-db')
 @with_appcontext
