@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:qr_payment/session.dart';
 import 'package:qrscan/qrscan.dart' as scanner;
 import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+
+import 'dart:async';
 
 class Transactions extends StatelessWidget {
   @override
@@ -22,6 +26,20 @@ class TransactionsPage extends StatefulWidget {
   State<StatefulWidget> createState() => _TransactionsState();
 }
 
+class Transaction {
+  final int id;
+  final String transactionDesc;
+
+  Transaction({this.id, this.transactionDesc});
+
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    return Transaction(
+      id: json['id'],
+      transactionDesc: json['transaction_desc'],
+    );
+  }
+}
+
 class _TransactionsState extends State<TransactionsPage> {
   @override
   Widget build(BuildContext context) {
@@ -29,34 +47,18 @@ class _TransactionsState extends State<TransactionsPage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-              child: Text('Recipient of the transaction:      **********')),
-          Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-              child: Text('Information about the transaction: **********')),
-          Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-              child: Text('Amount about the transaction:      **********')),
-          ButtonBar(
-            children: <Widget>[
-              RaisedButton(
-                child: const Text('Accept'),
-                onPressed: () {
-                  print("Accepted");
-                },
-              ),
-              RaisedButton(
-                onPressed: () {
-                  print("Declined");
-                },
-                child: const Text('Decline'),
-              ),
-            ],
-          ),
-        ],
+      body: FutureBuilder(
+        future: listTransactions(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return createTransactionsWidget(snapshot.data);
+          } else if (snapshot.hasError) {
+            print("eror");
+            return errorWidget(snapshot.error);
+          } else {
+            return CircularProgressIndicator();
+          }
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _scan,
@@ -77,5 +79,37 @@ class _TransactionsState extends State<TransactionsPage> {
     response.transform(utf8.decoder).listen((content) {
       print(content);
     });
+  }
+
+  Future<http.Response> listTransactions() async {
+    var response =
+        await Session.get('http://192.168.0.101:5000/transactions/list');
+    return response;
+  }
+
+  Widget createTransactionsWidget(data) {
+    var parsedTransactions = jsonDecode(data.body);
+    var transactions = List<Transaction>();
+    parsedTransactions.forEach((parsedTransaction) {
+      transactions.add(Transaction.fromJson(parsedTransaction));
+    });
+
+    return ListView.builder(
+        itemCount: transactions.length, itemBuilder: (context, index) {
+          return Column(
+            children: <Widget>[
+              ListTile(
+                title: Text(transactions[index].transactionDesc),
+              ),
+              Divider(
+                height: 2.0,
+              )
+            ],
+          );
+    });
+  }
+
+  Widget errorWidget(Object error) {
+    return new Text(error.toString());
   }
 }

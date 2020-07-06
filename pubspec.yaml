@@ -30,6 +30,8 @@ dependencies:
   cupertino_icons: ^0.1.3
   qrscan: ^0.2.17
   http: ^0.12.1
+  sqflite:
+  path:
 
 dev_dependencies:
   flutter_test:
