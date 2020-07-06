@@ -12,26 +12,36 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @bp.route('/register', methods=['POST'])
 def register():
-    email = request.authorization['username']
-    password = request.authorization['password']
+    email = request.json['email']
+    password = request.json['password']
+    first_name = request.json['first_name']
+    last_name = request.json['last_name']
+    phone = request.json['phone']
     error = None
 
     with DB() as db:
         if not email:
-            error = 'email is required.'
+            error = 'Email is required.'
         elif not password:
             error = 'Password is required.'
+        elif not first_name:
+            error = 'First Name is required.'
+        elif not last_name:
+            error = 'Last Name is required.'
+        elif not phone:
+            error = 'Phone is required.'    
 
-        db.execute(
-            'SELECT id FROM accounts WHERE email = %s', (email,)
-        )
+        if email:
+            db.execute(
+                'SELECT id FROM accounts WHERE email = %s', (email,)
+            )
         if db.fetchone() is not None:
-            error = 'User {} is already registered.'.format(email)
+            error = 'Account {} is already registered.'.format(email)
 
         if error is None:
             db.execute(
-                'INSERT INTO accounts (email, password) VALUES (%s, %s)',
-                (email, generate_password_hash(password))
+                'INSERT INTO accounts (email, password, first_name, last_name, phone) VALUES (%s, %s, %s, %s, %s)',
+                (email, generate_password_hash(password), first_name, last_name, phone)
             )
             return "Successful", 201
         return error, 400
@@ -39,6 +49,7 @@ def register():
 
 @bp.route('/login', methods=['POST'])
 def login():
+    print(request.authorization)
     email = request.authorization['username']
     password = request.authorization['password']
     error = None
@@ -84,7 +95,7 @@ def logout():
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
-        if g.user is None:
+        if g.account is None:
             return redirect(url_for('auth.login'))
 
         return view(**kwargs)
