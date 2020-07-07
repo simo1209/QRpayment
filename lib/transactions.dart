@@ -138,7 +138,7 @@ class CheckTransaction extends StatelessWidget {
         future: checkTransaction(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            return createCheckingWidget(snapshot.data);
+            return createCheckingWidget(context, snapshot.data);
           } else {
             return CircularProgressIndicator();
           }
@@ -155,7 +155,7 @@ class CheckTransaction extends StatelessWidget {
     return response;
   }
 
-  Widget createCheckingWidget(data) {
+  Widget createCheckingWidget(context, data) {
     Transaction transaction = Transaction.fromJson(jsonDecode(data.body));
     return Container(
       child: Column(
@@ -184,7 +184,7 @@ class CheckTransaction extends StatelessWidget {
                 color: Colors.lightBlue,
                 textColor: Colors.white,
                 onPressed: () {
-                  print("Accepted");
+                  acceptTransaction(context, transaction.id);
                 },
               )
             ],
@@ -192,5 +192,14 @@ class CheckTransaction extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void acceptTransaction(context, id) async {
+    var response = await Session.post(
+        "http://192.168.0.101:5000/transactions/accept",
+        jsonEncode(<String, String>{'id': id.toString()}));
+    if(response.statusCode == 201){
+      Navigator.pop(context);
+    }
   }
 }
