@@ -4,13 +4,13 @@ DROP TABLE IF EXISTS transactions CASCADE;
 
 CREATE TABLE IF NOT EXISTS accounts
 (
-    id           SERIAL PRIMARY KEY,
-    first_name       TEXT NOT NULL,
-    last_name       TEXT NOT NULL,
-    phone        TEXT NOT NULL,
-    email        TEXT NOT NULL,
-    password     TEXT NOT NULL,
-    balance      NUMERIC  NOT NULL CHECK ( balance >= 0 ) DEFAULT 1000
+    id         SERIAL PRIMARY KEY,
+    first_name TEXT    NOT NULL,
+    last_name  TEXT    NOT NULL,
+    phone      TEXT    NOT NULL,
+    email      TEXT    NOT NULL,
+    password   TEXT    NOT NULL,
+    balance    NUMERIC NOT NULL CHECK ( balance >= 0 ) DEFAULT 1000
 );
 
 CREATE TABLE IF NOT EXISTS transactions
@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS transactions
     id               SERIAL PRIMARY KEY,
     buyer_id         INTEGER REFERENCES accounts (id),
     seller_id        INTEGER REFERENCES accounts (id),
-    transaction_desc TEXT NOT NULL,
-    status           TEXT NOT NULL,
-    amount           NUMERIC CHECK ( amount > 0 ) NOT NULL
+    transaction_desc TEXT      NOT NULL,
+    status           TEXT      NOT NULL,
+    time_completed   TIMESTAMP NOT NULL DEFAULT NOW(),
+    amount           NUMERIC   NOT NULL CHECK ( amount > 0 )
 )

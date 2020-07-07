@@ -5,10 +5,22 @@ from flask import request
 
 from . import db
 
+import decimal
+import flask.json
+
+class CustomJSONEncoder(flask.json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            # Convert decimal instances to strings.
+            return str(obj)
+        return super(CustomJSONEncoder, self).default(obj)
+
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    app.json_encoder = CustomJSONEncoder
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE='dbname=practise user=simo09',
