@@ -29,14 +29,23 @@ class TransactionsPage extends StatefulWidget {
 class Transaction {
   final int id;
   final String transactionDesc;
+  final String sellerName;
+  final double amount;
 
-  Transaction({this.id, this.transactionDesc});
+  Transaction({this.id, this.transactionDesc, this.amount, this.sellerName});
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'],
       transactionDesc: json['transaction_desc'],
+      sellerName: json['seller_name'],
+      amount: json['amount'],
     );
+  }
+
+  @override
+  String toString() {
+    return 'Transaction{id: $id, transactionDesc: $transactionDesc, sellerName: $sellerName, amount: $amount}';
   }
 }
 
@@ -70,15 +79,7 @@ class _TransactionsState extends State<TransactionsPage> {
 
   Future _scan() async {
     String data = await scanner.scan(); // Read the QR encoded string
-    final client = HttpClient();
-    final request =
-        await client.postUrl(Uri.parse("http://192.168.0.101:5000/transfer"));
-    request.headers.set(HttpHeaders.contentTypeHeader, "plain/text");
-    request.write(data); // Write the QR encoded string as the post request body
-    final response = await request.close();
-    response.transform(utf8.decoder).listen((content) {
-      print(content);
-    });
+    navigateToTransactionCheck(context, data);
   }
 
   Future<http.Response> listTransactions() async {
@@ -87,6 +88,10 @@ class _TransactionsState extends State<TransactionsPage> {
     return response;
   }
 
+  Future navigateToTransactionCheck(context, data) async {
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => CheckTransaction(transactionData: data,)));
+  }
   Widget createTransactionsWidget(data) {
     var parsedTransactions = jsonDecode(data.body);
     var transactions = List<Transaction>();
@@ -94,8 +99,10 @@ class _TransactionsState extends State<TransactionsPage> {
       transactions.add(Transaction.fromJson(parsedTransaction));
     });
 
+
     return ListView.builder(
-        itemCount: transactions.length, itemBuilder: (context, index) {
+        itemCount: transactions.length,
+        itemBuilder: (context, index) {
           return Column(
             children: <Widget>[
               ListTile(
@@ -106,10 +113,54 @@ class _TransactionsState extends State<TransactionsPage> {
               )
             ],
           );
-    });
+        });
   }
 
   Widget errorWidget(Object error) {
     return new Text(error.toString());
   }
+}
+
+class CheckTransaction extends StatelessWidget {
+
+  final String transactionData;
+
+  const CheckTransaction({Key key, this.transactionData})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Check Transaction")),
+      body: FutureBuilder(
+        future: checkTransaction(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return createCheckingWidget(snapshot.data);
+          } else {
+            return CircularProgressIndicator();
+          }
+        },
+      ),
+    );
+  }
+
+  Future checkTransaction() async {
+    Session.headers["Content-Type"] = "application/json";
+    var response = await Session.post("http://192.168.0.101:5000/transactions/check", jsonEncode(<String,String>{'data':transactionData}));
+    return response;
+  }
+
+  Widget createCheckingWidget(data) {
+    Transaction transaction = Transaction.fromJson(jsonDecode(data.body));
+    return Row(
+      children: <Widget>[
+        Text(transaction.sellerName),
+        Text(transaction.transactionDesc),
+        Text(transaction.amount.toString())
+      ],
+    );
+  }
+
+
 }
