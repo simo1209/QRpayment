@@ -90,15 +90,19 @@ class _TransactionsState extends State<TransactionsPage> {
 
   Future navigateToTransactionCheck(context, data) async {
     Navigator.push(
-        context, MaterialPageRoute(builder: (context) => CheckTransaction(transactionData: data,)));
+        context,
+        MaterialPageRoute(
+            builder: (context) => CheckTransaction(
+                  transactionData: data,
+                )));
   }
+
   Widget createTransactionsWidget(data) {
     var parsedTransactions = jsonDecode(data.body);
     var transactions = List<Transaction>();
     parsedTransactions.forEach((parsedTransaction) {
       transactions.add(Transaction.fromJson(parsedTransaction));
     });
-
 
     return ListView.builder(
         itemCount: transactions.length,
@@ -122,11 +126,9 @@ class _TransactionsState extends State<TransactionsPage> {
 }
 
 class CheckTransaction extends StatelessWidget {
-
   final String transactionData;
 
-  const CheckTransaction({Key key, this.transactionData})
-      : super(key: key);
+  const CheckTransaction({Key key, this.transactionData}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -147,20 +149,48 @@ class CheckTransaction extends StatelessWidget {
 
   Future checkTransaction() async {
     Session.headers["Content-Type"] = "application/json";
-    var response = await Session.post("http://192.168.0.101:5000/transactions/check", jsonEncode(<String,String>{'data':transactionData}));
+    var response = await Session.post(
+        "http://192.168.0.101:5000/transactions/check",
+        jsonEncode(<String, String>{'data': transactionData}));
     return response;
   }
 
   Widget createCheckingWidget(data) {
     Transaction transaction = Transaction.fromJson(jsonDecode(data.body));
-    return Row(
-      children: <Widget>[
-        Text(transaction.sellerName),
-        Text(transaction.transactionDesc),
-        Text(transaction.amount.toString())
-      ],
+    return Container(
+      child: Column(
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Text('Selelr Name'),
+              Text('Description'),
+              Text('Amount')
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Text(transaction.sellerName),
+              Text(transaction.transactionDesc),
+              Text(transaction.amount.toString())
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              RaisedButton(
+                child: Text("Accept"),
+                color: Colors.lightBlue,
+                textColor: Colors.white,
+                onPressed: () {
+                  print("Accepted");
+                },
+              )
+            ],
+          )
+        ],
+      ),
     );
   }
-
-
 }
