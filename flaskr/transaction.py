@@ -34,7 +34,7 @@ def create():
             id = db.fetchone()['id']
             img = qrcode.make('QRpayment:{}'.format(id))
             img.save('qr-codes/{}.png'.format(id))
-            return send_file('../qr-codes/{}.png'.format(id))
+            return send_file('../qr-codes/{}.png'.format(id)), 201
     return error, 400
 
 
@@ -64,17 +64,40 @@ def accept():
     id = request.json['id']
     error = None
     if not id:
-        error = "SUpply id"
+        error = "Supply id"
 
     if error is None:
         with DB() as db:
+
+            db.execute('SELECT balance FROM accounts;')
+            account_balance = db.fetchone()['balance']
+
+            db.execute('SELECT seller_id,amount FROM transactions WHERE id = %s', (id))
+            transaction = db.fetchone()
+            transaction_amount = transaction['amount']
+
+            if transaction_amount > account_balance:
+                return "Account balance insufficient", 403
+
+            db.execute(
+                '''UPDATE accounts SET balance = balance - %s WHERE id = %s''',
+                (transaction_amount, g.account['id'])
+            )
+
+            db.execute(
+                '''UPDATE accounts SET balance = balance + %s WHERE id = %s''',
+                (transaction_amount, transaction['seller_id'])
+            )
+
             db.execute(
                 '''UPDATE transactions
                     SET buyer_id = %s, status = 'Completed'
                     WHERE id = %s;''',
-                    (g.account['id'], id))
-            return "Accepted", 201
+                (g.account['id'], id))
+
+            return jsonify({'balance': (account_balance-transaction_amount)}), 201 # Return users new balance
     return error, 400
+
 
 @bp.route('/list', methods=['GET'])
 @login_required
