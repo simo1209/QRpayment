@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 
 class Transactions extends StatelessWidget {
+
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -199,7 +201,8 @@ class CheckTransaction extends StatelessWidget {
         "http://192.168.0.101:5000/transactions/accept",
         jsonEncode(<String, String>{'id': id.toString()}));
     if(response.statusCode == 201){
-      Navigator.pop(context);
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => Transactions()));
     }
   }
 }
