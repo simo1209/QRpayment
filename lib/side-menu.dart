@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:qr_payment/transactions.dart';
+
+import 'navigations.dart';
 
 class SideMenu extends StatelessWidget {
   @override
@@ -24,6 +25,13 @@ class SideMenu extends StatelessWidget {
             ),
           ),
           ListTile(
+            title: Text("Main Menu"),
+            trailing: Icon(Icons.arrow_forward),
+            onTap: (){
+              navigateToSystem(context);
+            },
+          ),
+          ListTile(
             title: Text("History"),
             trailing: Icon(Icons.arrow_forward),
             onTap: (){
@@ -40,12 +48,4 @@ class SideMenu extends StatelessWidget {
     );
   }
 
-  Future navigateToTransactionsList(context) async {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => Transactions()
-        )
-    );
-  }
 }

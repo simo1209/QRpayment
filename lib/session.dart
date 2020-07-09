@@ -7,12 +7,18 @@ class Session {
   static final String host = "http://192.168.0.101:5000";
 
   static Future<http.Response> login(email, password) async{
+
+
     String basicAuth =
         'Basic ' + base64Encode(utf8.encode('$email:$password'));
 
-    var response = await http.post('$host/auth/login', headers: {'Authorization': basicAuth});
+    print('$host/auth/login');
+    print({'Authorization': basicAuth});
+
+    var response = await http.post('http://192.168.0.101:5000/auth/login', headers: {'Authorization': basicAuth});
     print(response.headers);
     updateCookie(response);
+    print(headers);
     return response;
   }
 
@@ -23,6 +29,9 @@ class Session {
   }
 
   static Future<http.Response> post(String url, dynamic data) async {
+    print('$host$url');
+    print(data);
+    print(headers);
     http.Response response = await http.post('$host$url', body: data, headers: headers);
     updateCookie(response);
     return response;

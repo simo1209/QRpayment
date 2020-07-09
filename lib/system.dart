@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_payment/side-menu.dart';
+import 'navigations.dart';
 import 'transactions.dart';
 import 'package:qrscan/qrscan.dart' as scanner;
 
@@ -53,8 +54,10 @@ class SystemPageState extends State<SystemPage> {
                 IconButton(
                   iconSize: 216.0,
                   icon: Icon(Icons.send),
-                  tooltip: 'Scan',
-                  onPressed: () {},
+                  tooltip: 'Create',
+                  onPressed: (){
+                    navigateToCreateTransaction(context);
+                  },
                 ),
                 Text(
                   'Create',

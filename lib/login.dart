@@ -4,6 +4,8 @@ import 'package:qr_payment/session.dart';
 import 'dart:convert';
 import 'package:qr_payment/transactions.dart';
 
+import 'navigations.dart';
+
 
 void main() => runApp(Login());
 
@@ -59,6 +61,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             TextFormField(
               controller: emailController,
+              keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 hintText: 'Enter your email',
               ),
@@ -112,10 +115,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future navigateToRegister(context) async {
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => Register()));
-  }
+
 
   Future _login(context) async {
     if (_formKey.currentState.validate()) {
@@ -200,6 +200,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               TextFormField(
                 controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   hintText: 'Enter your email',
                 ),
@@ -268,7 +269,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'Content-Type': 'application/json; charset=UTF-8',
       };
       var response = await Session.post(
-        'http://192.168.0.101:5000/auth/register',
+        '/auth/register',
         jsonEncode(<String, String>{
           'email': email,
           'password': password,
@@ -285,9 +286,4 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     }
   }
-}
-
-Future navigateToSystem(context) async {
-  Navigator.push(
-      context, MaterialPageRoute(builder: (context) => System()));
 }
