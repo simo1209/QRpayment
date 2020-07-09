@@ -34,9 +34,26 @@ def create():
             id = db.fetchone()['id']
             img = qrcode.make('QRpayment:{}'.format(id))
             img.save('qr-codes/{}.png'.format(id))
-            return send_file('../qr-codes/{}.png'.format(id)), 201
+            print('Redirect to: /transaction/{}'.format(id))
+            return '/transaction/{}'.format(id), 201
     return error, 400
 
+@bp.route('/<transaction_id>', methods = ['GET'])
+@login_required
+def transaction_code(transaction_id):
+    try:
+        t_id = int(transaction_id)
+    except ValueError:
+        return 'Id is invalid', 400
+    with DB() as db:
+        db.execute('SELECT seller_id FROM transactions WHERE id = %s;',
+        [t_id])
+        transaction = db.fetchone()
+        if transaction is not None:
+            if g.account['id'] != transaction['seller_id']:
+                return 'Unathorized', 403
+            return send_file('../qr-codes/{}.png'.format(t_id))
+    return 'Id is invalid', 400
 
 @bp.route('/check', methods=['POST'])
 @login_required
@@ -49,13 +66,16 @@ def check():
     with DB() as db:
         db.execute(
             '''SELECT transactions.id, transactions.transaction_desc, transactions.amount,
-                accounts.first_name AS seller_name FROM transactions 
+                accounts.first_name AS seller_name, transactions.status FROM transactions 
                 LEFT JOIN accounts on transactions.seller_id = accounts.id 
                 WHERE transactions.id = %s''',
             (transaction_id)
         )
-        return jsonify(db.fetchone()), 200
-
+        transaction = db.fetchone()
+        if transaction['status'] == "Pending":
+            return jsonify(transaction), 200
+        else:
+            return "Transaction is either already complete or invalid", 403
 
 @bp.route('/accept', methods=['POST'])
 @login_required
@@ -69,12 +89,17 @@ def accept():
     if error is None:
         with DB() as db:
 
-            db.execute('SELECT balance FROM accounts;')
-            account_balance = db.fetchone()['balance']
-
             db.execute('SELECT seller_id,amount FROM transactions WHERE id = %s', (id))
             transaction = db.fetchone()
+
             transaction_amount = transaction['amount']
+
+            db.execute('SELECT balance FROM accounts;')
+            account_balance = db.fetchone()['balance']
+            print(account_balance)
+
+            
+
 
             if transaction_amount > account_balance:
                 return "Account balance insufficient", 403
