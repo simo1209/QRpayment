@@ -11,6 +11,11 @@ from flaskr.auth import login_required
 from flaskr.db import DB
 
 import qrcode
+from cryptography.fernet import Fernet
+
+key_file = open('qrpayment.key', 'rb')
+key = key_file.read()
+fernet = Fernet(key)
 
 bp = Blueprint('transactions', __name__, url_prefix='/transactions')
 
@@ -32,7 +37,8 @@ def create():
             db.execute("INSERT INTO transactions(seller_id, transaction_desc, amount, status) VALUES (%s, %s, %s, 'Pending') RETURNING id;",
                        (g.account['id'], transcation_desc, amount))
             id = db.fetchone()['id']
-            img = qrcode.make('QRpayment:{}'.format(id))
+            code = ('QRpayment:{}'.format(id)).encode()
+            img = qrcode.make(fernet.encrypt(code))
             img.save('qr-codes/{}.png'.format(id))
             return '/transactions/{}'.format(id), 201
     return error, 400
@@ -57,18 +63,21 @@ def transaction_code(transaction_id):
 @bp.route('/check', methods=['POST'])
 @login_required
 def check():
-    transaction_data = request.json['data'].split(':')
-    if transaction_data[0] != 'QRpayment':
+    transaction_data = request.json['data']
+    decrypted = fernet.decrypt(transaction_data.encode()).decode()
+    code = decrypted.split(':')
+    if code[0] != 'QRpayment':
         print('Unrecognized QR code')
         return 'Unrecognized QR code', 400
-    transaction_id = transaction_data[-1]
+    transaction_id = code[-1]
+    print(transaction_id)
     with DB() as db:
         db.execute(
             '''SELECT transactions.id, transactions.transaction_desc, transactions.amount,
                 accounts.first_name AS seller_name, transactions.status FROM transactions 
                 LEFT JOIN accounts on transactions.seller_id = accounts.id 
                 WHERE transactions.id = %s''',
-            (transaction_id)
+            [transaction_id]
         )
         transaction = db.fetchone()
         if transaction['status'] == "Pending":
