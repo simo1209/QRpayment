@@ -49,7 +49,6 @@ def register():
 
 @bp.route('/login', methods=['POST'])
 def login():
-    print(request.authorization)
     email = request.authorization['username']
     password = request.authorization['password']
     error = None

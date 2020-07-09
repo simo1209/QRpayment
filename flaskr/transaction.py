@@ -34,8 +34,7 @@ def create():
             id = db.fetchone()['id']
             img = qrcode.make('QRpayment:{}'.format(id))
             img.save('qr-codes/{}.png'.format(id))
-            print('Redirect to: /transaction/{}'.format(id))
-            return '/transaction/{}'.format(id), 201
+            return '/transactions/{}'.format(id), 201
     return error, 400
 
 @bp.route('/<transaction_id>', methods = ['GET'])
