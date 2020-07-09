@@ -8,8 +8,6 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 
 class Transactions extends StatelessWidget {
-
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -58,10 +56,44 @@ class _TransactionsState extends State<TransactionsPage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
+      drawer: Drawer(
+        child: ListView(
+          children: <Widget>[
+            UserAccountsDrawerHeader(
+              accountName: Text("Simeon Goergiev"),
+              accountEmail: Text("sgeorgiev@mail.com"),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor:
+                Theme.of(context).platform == TargetPlatform.iOS
+                    ? Colors.blue
+                    : Colors.white,
+                child: Text(
+                  "S",
+                  style: TextStyle(fontSize: 40.0),
+                ),
+              ),
+            ),
+            ListTile(
+              title: Text("History"),
+              trailing: Icon(Icons.arrow_forward),
+              onTap: (){
+
+              },
+            ),
+            ListTile(
+              title: Text("Account"),
+              trailing: Icon(Icons.arrow_forward),
+              onTap: (){
+
+              },
+            ),
+          ],
+        ),
+      ),
       body: FutureBuilder(
         future: listTransactions(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
             return createTransactionsWidget(snapshot.data);
           } else if (snapshot.hasError) {
             print("eror");
@@ -99,8 +131,9 @@ class _TransactionsState extends State<TransactionsPage> {
                 )));
   }
 
-  Widget createTransactionsWidget(data) {
-    var parsedTransactions = jsonDecode(data.body);
+  Widget createTransactionsWidget(response) {
+    print(response);
+    var parsedTransactions = jsonDecode(response.body);
     var transactions = List<Transaction>();
     parsedTransactions.forEach((parsedTransaction) {
       transactions.add(Transaction.fromJson(parsedTransaction));
@@ -141,7 +174,9 @@ class CheckTransaction extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             return createCheckingWidget(context, snapshot.data);
-          } else {
+          } else if (snapshot.hasError){
+            return Text(snapshot.error);
+        } else{
             return CircularProgressIndicator();
           }
         },
@@ -152,55 +187,60 @@ class CheckTransaction extends StatelessWidget {
   Future checkTransaction() async {
     Session.headers["Content-Type"] = "application/json";
     var response = await Session.post(
-        "http://192.168.0.101:5000/transactions/check",
+        "/transactions/check",
         jsonEncode(<String, String>{'data': transactionData}));
     return response;
   }
 
-  Widget createCheckingWidget(context, data) {
-    Transaction transaction = Transaction.fromJson(jsonDecode(data.body));
-    return Container(
-      child: Column(
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              Text('Selelr Name'),
-              Text('Description'),
-              Text('Amount')
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              Text(transaction.sellerName),
-              Text(transaction.transactionDesc),
-              Text(transaction.amount.toString())
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              RaisedButton(
-                child: Text("Accept"),
-                color: Colors.lightBlue,
-                textColor: Colors.white,
-                onPressed: () {
-                  acceptTransaction(context, transaction.id);
-                },
-              )
-            ],
-          )
-        ],
-      ),
-    );
+  Widget createCheckingWidget(context, response) {
+
+    if(response.statusCode == 200) {
+      Transaction transaction = Transaction.fromJson(jsonDecode(response.body));
+      return Container(
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Text('Selelr Name'),
+                Text('Description'),
+                Text('Amount')
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Text(transaction.sellerName),
+                Text(transaction.transactionDesc),
+                Text(transaction.amount.toString())
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                RaisedButton(
+                  child: Text("Accept"),
+                  color: Colors.lightBlue,
+                  textColor: Colors.white,
+                  onPressed: () {
+                    acceptTransaction(context, transaction.id);
+                  },
+                )
+              ],
+            )
+          ],
+        ),
+      );
+    }
+    return Text(response.body);
+
   }
 
   void acceptTransaction(context, id) async {
     var response = await Session.post(
-        "http://192.168.0.101:5000/transactions/accept",
+        "http://192.168.0.104:5000/transactions/accept",
         jsonEncode(<String, String>{'id': id.toString()}));
-    if(response.statusCode == 201){
+    if (response.statusCode == 201) {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => Transactions()));
     }

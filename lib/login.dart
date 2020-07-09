@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:qr_payment/system.dart';
 import 'package:qr_payment/session.dart';
 import 'dart:convert';
 import 'package:qr_payment/transactions.dart';
 
 
-void main() => runApp(MyApp());
+void main() => runApp(Login());
 
-class MyApp extends StatelessWidget {
+class Login extends StatelessWidget {
   static const String _title = 'Login';
 
   @override
@@ -15,20 +16,20 @@ class MyApp extends StatelessWidget {
       title: _title,
       home: Scaffold(
         appBar: AppBar(title: const Text(_title)),
-        body: MyStatefulWidget(),
+        body: LoginPage(),
       ),
     );
   }
 }
 
-class MyStatefulWidget extends StatefulWidget {
-  MyStatefulWidget({Key key}) : super(key: key);
+class LoginPage extends StatefulWidget {
+  LoginPage({Key key}) : super(key: key);
 
   @override
-  _MyStatefulWidgetState createState() => _MyStatefulWidgetState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _MyStatefulWidgetState extends State<MyStatefulWidget> {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
   final emailController = TextEditingController();
@@ -124,7 +125,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
       var response = await Session.login(email, password);
 
       if(response.statusCode == 200){
-        navigateToTransactions(context);
+        navigateToSystem(context);
       }
     }
   }
@@ -278,7 +279,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (response.statusCode == 201) {
-        navigateToTransactions(context);
+        navigateToSystem(context);
       } else {
         throw Exception('Failed to create album.');
       }
@@ -286,7 +287,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-Future navigateToTransactions(context) async {
+Future navigateToSystem(context) async {
   Navigator.push(
-      context, MaterialPageRoute(builder: (context) => Transactions()));
+      context, MaterialPageRoute(builder: (context) => System()));
 }
