@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:qr_payment/side-menu.dart';
+import 'transactions.dart';
+import 'package:qrscan/qrscan.dart' as scanner;
 
 class System extends StatelessWidget {
   static const String _title = 'System';
@@ -10,75 +13,72 @@ class System extends StatelessWidget {
       home: Scaffold(
         appBar: AppBar(
 //            title: const Text(_title)
-        ),
-        drawer: Drawer(
-          child: ListView(
-            children: <Widget>[
-              UserAccountsDrawerHeader(
-                accountName: Text("Simeon Goergiev"),
-                accountEmail: Text("sgeorgiev@mail.com"),
-                currentAccountPicture: CircleAvatar(
-                  backgroundColor:
-                      Theme.of(context).platform == TargetPlatform.iOS
-                          ? Colors.blue
-                          : Colors.white,
-                  child: Text(
-                    "S",
-                    style: TextStyle(fontSize: 40.0),
-                  ),
-                ),
-              ),
-              ListTile(
-                title: Text("History"),
-                trailing: Icon(Icons.arrow_forward),
-                onTap: () {},
-              ),
-              ListTile(
-                title: Text("Account"),
-                trailing: Icon(Icons.arrow_forward),
-                onTap: () {},
-              ),
-            ],
-          ),
-        ),
-        body: Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            ),
+        drawer: SideMenu(),
+        body: SystemPage(),
+      ),
+    );
+  }
+}
+
+class SystemPage extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => SystemPageState();
+}
+
+class SystemPageState extends State<SystemPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Column(
               children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    IconButton(
-                      iconSize: 216.0,
-                      icon: Icon(Icons.camera),
-                      tooltip: 'Scan',
-                      onPressed: () {},
-                    ),
-                    Text(
-                      'Scan',
-                      style: TextStyle(fontSize: 36),
-                    ),
-                  ],
+                IconButton(
+                  iconSize: 216.0,
+                  icon: Icon(Icons.camera),
+                  tooltip: 'Scan',
+                  onPressed: _scan,
                 ),
-                Column(
-                  children: <Widget>[
-                    IconButton(
-                      iconSize: 216.0,
-                      icon: Icon(Icons.send),
-                      tooltip: 'Scan',
-                      onPressed: () {},
-                    ),
-                    Text(
-                      'Create',
-                      style: TextStyle(fontSize: 36),
-                    ),
-                  ],
+                Text(
+                  'Scan',
+                  style: TextStyle(fontSize: 36),
                 ),
               ],
             ),
-          ),
+            Column(
+              children: <Widget>[
+                IconButton(
+                  iconSize: 216.0,
+                  icon: Icon(Icons.send),
+                  tooltip: 'Scan',
+                  onPressed: () {},
+                ),
+                Text(
+                  'Create',
+                  style: TextStyle(fontSize: 36),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future _scan() async {
+    String data = await scanner.scan(); // Read the QR encoded string
+    navigateToTransactionCheck(context, data);
+  }
+
+  Future navigateToTransactionCheck(context, data) async {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => CheckTransaction(
+                  transactionData: data,
+                )));
   }
 }

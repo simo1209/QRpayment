@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:qr_payment/session.dart';
-import 'package:qrscan/qrscan.dart' as scanner;
+import 'package:qr_payment/side-menu.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'dart:async';
+
+import 'package:qr_payment/system.dart';
 
 class Transactions extends StatelessWidget {
   @override
@@ -56,40 +58,7 @@ class _TransactionsState extends State<TransactionsPage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      drawer: Drawer(
-        child: ListView(
-          children: <Widget>[
-            UserAccountsDrawerHeader(
-              accountName: Text("Simeon Goergiev"),
-              accountEmail: Text("sgeorgiev@mail.com"),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor:
-                Theme.of(context).platform == TargetPlatform.iOS
-                    ? Colors.blue
-                    : Colors.white,
-                child: Text(
-                  "S",
-                  style: TextStyle(fontSize: 40.0),
-                ),
-              ),
-            ),
-            ListTile(
-              title: Text("History"),
-              trailing: Icon(Icons.arrow_forward),
-              onTap: (){
-
-              },
-            ),
-            ListTile(
-              title: Text("Account"),
-              trailing: Icon(Icons.arrow_forward),
-              onTap: (){
-
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: SideMenu(),
       body: FutureBuilder(
         future: listTransactions(),
         builder: (context, snapshot) {
@@ -103,33 +72,19 @@ class _TransactionsState extends State<TransactionsPage> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _scan,
-        tooltip: 'Increment',
-        child: Icon(Icons.camera),
-      ),
+
     );
   }
 
-  Future _scan() async {
-    String data = await scanner.scan(); // Read the QR encoded string
-    navigateToTransactionCheck(context, data);
-  }
+
 
   Future<http.Response> listTransactions() async {
     var response =
-        await Session.get('http://192.168.0.101:5000/transactions/list');
+        await Session.get('/transactions/list');
     return response;
   }
 
-  Future navigateToTransactionCheck(context, data) async {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => CheckTransaction(
-                  transactionData: data,
-                )));
-  }
+
 
   Widget createTransactionsWidget(response) {
     print(response);
@@ -175,7 +130,7 @@ class CheckTransaction extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.done) {
             return createCheckingWidget(context, snapshot.data);
           } else if (snapshot.hasError){
-            return Text(snapshot.error);
+            return Text(snapshot.error.toString());
         } else{
             return CircularProgressIndicator();
           }
@@ -238,11 +193,11 @@ class CheckTransaction extends StatelessWidget {
 
   void acceptTransaction(context, id) async {
     var response = await Session.post(
-        "http://192.168.0.104:5000/transactions/accept",
+        "/transactions/accept",
         jsonEncode(<String, String>{'id': id.toString()}));
     if (response.statusCode == 201) {
       Navigator.push(
-          context, MaterialPageRoute(builder: (context) => Transactions()));
+          context, MaterialPageRoute(builder: (context) => System()));
     }
   }
 }
