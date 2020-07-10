@@ -6,6 +6,7 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from flaskr.db import DB
+from flask import jsonify
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -91,6 +92,7 @@ def logout():
     return "Logged Out", 200
 
 
+
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -100,3 +102,13 @@ def login_required(view):
         return view(**kwargs)
 
     return wrapped_view
+
+
+@bp.route('/user')
+@login_required
+def current_user():
+    with DB() as db:
+        db.execute('SELECT first_name, last_name, email, balance FROM accounts WHERE id = %s',
+        [g.account['id']])
+        user = db.fetchone()
+        return jsonify(user), 200

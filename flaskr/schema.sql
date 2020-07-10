@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS accounts
     phone      TEXT    NOT NULL,
     email      TEXT    NOT NULL,
     password   TEXT    NOT NULL,
-    balance    NUMERIC NOT NULL CHECK ( balance >= 0 ) DEFAULT 1000
+    balance    NUMERIC NOT NULL CHECK ( balance >= 0 ) DEFAULT 1000.0
 );
 
 CREATE TABLE IF NOT EXISTS transactions
