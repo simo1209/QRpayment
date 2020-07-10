@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_payment/system.dart';
 import 'package:qr_payment/transactions.dart';
 
+import 'account.dart';
 import 'login.dart';
 
 Future navigateToTransactionsList(context) async {
@@ -22,4 +23,8 @@ Future navigateToCreateTransaction(context) async {
 
 Future navigateToTransactionCode(context, imgUrl) async {
   Navigator.push(context, MaterialPageRoute(builder: (context) => TransactionCode(imgUrl: imgUrl,)));
+}
+
+Future navigateToAccount(context) async {
+  Navigator.push(context, MaterialPageRoute(builder: (context) => Accounts()));
 }

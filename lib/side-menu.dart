@@ -41,7 +41,9 @@ class SideMenu extends StatelessWidget {
           ListTile(
             title: Text("Account"),
             trailing: Icon(Icons.arrow_forward),
-            onTap: () {},
+            onTap: () {
+              navigateToAccount(context);
+            },
           ),
         ],
       ),
