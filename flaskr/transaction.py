@@ -13,11 +13,44 @@ from flaskr.db import DB
 import qrcode
 from cryptography.fernet import Fernet
 
+from errors import ApplicationError
+
 key_file = open('qrpayment.key', 'rb')
 key = key_file.read()
 fernet = Fernet(key)
 
 bp = Blueprint('transactions', __name__, url_prefix='/transactions')
+
+
+class Transaction:
+    def __init__(self, id, buyer_id, seller_id, transaction_desc, status, time_completed, amount):
+        self.id = id
+        self.buyer_id = buyer_id
+        self.seller_id = seller_id
+        self.transaction_desc = transaction_desc
+        self.status = transaction_desc
+        self.time_completed = time_completed
+        self.amount = amount
+
+    @staticmethod
+    def all():
+        with DB() as db:
+            db.execute('SELECT * FROM transactions;')
+            rows = db.fetchall()
+            return [Transaction(*row) for row in rows]
+    
+    @staticmethod
+    def find(id):
+        with DB() as db:
+            db.execute(
+                'SELECT * FROM transactions WHERE id = ?',
+                (id,)
+            )
+            row = db.fetchone()
+            if row is None:
+                raise ApplicationError("Transaction doesnt exist", 404)
+            return Transaction(*row)
+
 
 
 @bp.route('/create', methods=['POST'])
@@ -43,7 +76,8 @@ def create():
             return '/transactions/{}'.format(id), 201
     return error, 400
 
-@bp.route('/<transaction_id>', methods = ['GET'])
+
+@bp.route('/<transaction_id>', methods=['GET'])
 @login_required
 def transaction_code(transaction_id):
     try:
@@ -52,13 +86,14 @@ def transaction_code(transaction_id):
         return 'Id is invalid', 400
     with DB() as db:
         db.execute('SELECT seller_id FROM transactions WHERE id = %s;',
-        [t_id])
+                   [t_id])
         transaction = db.fetchone()
         if transaction is not None:
             if g.account['id'] != transaction['seller_id']:
                 return 'Unathorized', 403
             return send_file('../qr-codes/{}.png'.format(t_id))
     return 'Id is invalid', 400
+
 
 @bp.route('/check', methods=['POST'])
 @login_required
@@ -85,6 +120,7 @@ def check():
         else:
             return "Transaction is either already complete or invalid", 403
 
+
 @bp.route('/accept', methods=['POST'])
 @login_required
 def accept():
@@ -97,7 +133,8 @@ def accept():
     if error is None:
         with DB() as db:
 
-            db.execute('SELECT seller_id,amount FROM transactions WHERE id = %s', (id))
+            db.execute(
+                'SELECT seller_id,amount FROM transactions WHERE id = %s', (id))
             transaction = db.fetchone()
 
             transaction_amount = transaction['amount']
@@ -105,9 +142,6 @@ def accept():
             db.execute('SELECT balance FROM accounts;')
             account_balance = db.fetchone()['balance']
             print(account_balance)
-
-            
-
 
             if transaction_amount > account_balance:
                 return "Account balance insufficient", 403
@@ -128,7 +162,8 @@ def accept():
                     WHERE id = %s;''',
                 (g.account['id'], id))
 
-            return jsonify({'balance': (account_balance-transaction_amount)}), 201 # Return users new balance
+            # Return users new balance
+            return jsonify({'balance': (account_balance-transaction_amount)}), 201
     return error, 400
 
 
