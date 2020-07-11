@@ -13,11 +13,14 @@ from flaskr.db import DB
 import qrcode
 from cryptography.fernet import Fernet
 
-from errors import ApplicationError
+import requests
 
 key_file = open('qrpayment.key', 'rb')
 key = key_file.read()
 fernet = Fernet(key)
+
+token_file = open('paypal-token.txt', 'r')
+token = token_file.read()
 
 bp = Blueprint('transactions', __name__, url_prefix='/transactions')
 
@@ -38,7 +41,7 @@ class Transaction:
             db.execute('SELECT * FROM transactions;')
             rows = db.fetchall()
             return [Transaction(*row) for row in rows]
-    
+
     @staticmethod
     def find(id):
         with DB() as db:
@@ -47,10 +50,27 @@ class Transaction:
                 (id,)
             )
             row = db.fetchone()
-            if row is None:
-                raise ApplicationError("Transaction doesnt exist", 404)
             return Transaction(*row)
 
+    def save(self):
+        with DB() as db:
+            values = (
+                self.buyer_id,
+                self.seller_id,
+                self.transaction_desc,
+                self.status,
+                self.amount,
+                self.id
+            )
+            db.execute(
+                '''UPDATE transactions
+                SET buyer_id = ?, seller_id = ?, transaction_desc = ?, status = ?, amount = ?
+                WHERE id = ?''', values)
+            return self
+
+    def delete(self):
+        with DB() as db:
+            db.execute('DELETE FROM transactions WHERE id = ?', (self.id,))
 
 
 @bp.route('/create', methods=['POST'])
@@ -66,6 +86,25 @@ def create():
         error = "Amount shouldn't be negative"
 
     if error is None:
+        email = 'ppetrov@mail.com'
+        headers = {'Content-Type': 'application/json', "Authorization": token}
+        data = {
+            "intent":"CAPTURE",
+            "purchase_units":[
+                {
+                    "amount":{
+                        "currency_code": "USD",
+                        "value": "100.00"
+                    },
+                    "payee":{
+                        "email":email
+                    }
+                }
+            ]
+        }
+        resp = requests.post(
+            'https://api.sandbox.paypal.com/v2/checkout/orders', headers=headers, json=data)
+        # print(resp.json())
         with DB() as db:
             db.execute("INSERT INTO transactions(seller_id, transaction_desc, amount, status) VALUES (%s, %s, %s, 'Pending') RETURNING id;",
                        (g.account['id'], transcation_desc, amount))
