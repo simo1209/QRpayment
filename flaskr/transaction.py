@@ -14,6 +14,7 @@ import qrcode
 from cryptography.fernet import Fernet
 
 import requests
+import json
 
 key_file = open('qrpayment.key', 'rb')
 key = key_file.read()
@@ -86,29 +87,33 @@ def create():
         error = "Amount shouldn't be negative"
 
     if error is None:
-        email = 'ppetrov@mail.com'
+        email = g.account['email']
         headers = {'Content-Type': 'application/json', "Authorization": token}
         data = {
-            "intent":"CAPTURE",
-            "purchase_units":[
+            "intent": "CAPTURE",
+            "purchase_units": [
                 {
-                    "amount":{
+                    "amount": {
                         "currency_code": "USD",
-                        "value": "100.00"
+                        "value": amount
                     },
-                    "payee":{
-                        "email":email
+                    "payee": {
+                        "email": email
                     }
                 }
             ]
         }
         resp = requests.post(
             'https://api.sandbox.paypal.com/v2/checkout/orders', headers=headers, json=data)
-        # print(resp.json())
+        if resp.status_code == 401:
+            print(resp.text)
+            print('Token expired')
+            return "Internal server error", 500
+        resp_data = resp.json()
         with DB() as db:
-            db.execute("INSERT INTO transactions(seller_id, transaction_desc, amount, status) VALUES (%s, %s, %s, 'Pending') RETURNING id;",
-                       (g.account['id'], transcation_desc, amount))
-            id = db.fetchone()['id']
+            id = resp_data['id']
+            db.execute("INSERT INTO transactions(paypal_id, seller_id, transaction_desc, amount, status) VALUES (%s, %s, %s, %s, 'Pending');",
+                       (id, g.account['id'], transcation_desc, amount))
             code = ('QRpayment:{}'.format(id)).encode()
             img = qrcode.make(fernet.encrypt(code))
             img.save('qr-codes/{}.png'.format(id))
@@ -124,7 +129,7 @@ def transaction_code(transaction_id):
     except ValueError:
         return 'Id is invalid', 400
     with DB() as db:
-        db.execute('SELECT seller_id FROM transactions WHERE id = %s;',
+        db.execute('SELECT seller_id FROM transactions WHERE paypal_id = %s;',
                    [t_id])
         transaction = db.fetchone()
         if transaction is not None:
@@ -147,10 +152,10 @@ def check():
     print(transaction_id)
     with DB() as db:
         db.execute(
-            '''SELECT transactions.id, transactions.transaction_desc, transactions.amount,
+            '''SELECT transactions.id, transactions.paypal_id, transactions.transaction_desc, transactions.amount,
                 accounts.first_name AS seller_name, transactions.status FROM transactions 
                 LEFT JOIN accounts on transactions.seller_id = accounts.id 
-                WHERE transactions.id = %s''',
+                WHERE transactions.paypal_id = %s''',
             [transaction_id]
         )
         transaction = db.fetchone()
@@ -205,6 +210,15 @@ def accept():
             return jsonify({'balance': (account_balance-transaction_amount)}), 201
     return error, 400
 
+@bp.route('/authorize', methods=['POST'])
+def paypal_authorize():
+    order = request.json
+    if order:
+        resource = order['resource']
+        print(resource)
+        print(resource['id'])
+        return "Successful", 200
+    return "Failiure", 400
 
 @bp.route('/list', methods=['GET'])
 @login_required
@@ -212,7 +226,7 @@ def list():
     with DB() as db:
         db.execute(
             '''SELECT transactions.id, transactions.transaction_desc, transactions.amount, 
-                accounts.first_name AS seller_name
+                accounts.first_name AS seller_name, transactions.status
                 FROM transactions LEFT JOIN accounts on transactions.seller_id = accounts.id 
                 WHERE buyer_id = %s OR seller_id = %s;''',
             (g.account['id'], g.account['id'])

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS accounts
 CREATE TABLE IF NOT EXISTS transactions
 (
     id               SERIAL PRIMARY KEY,
+    paypal_id        TEXT    NOT NULL,
     buyer_id         INTEGER REFERENCES accounts (id),
     seller_id        INTEGER REFERENCES accounts (id),
     transaction_desc TEXT      NOT NULL,
