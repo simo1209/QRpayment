@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:qr_payment/login.dart';
 import 'package:qr_payment/session.dart';
 import 'package:qr_payment/side-menu.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'dart:async';
-
-import 'package:qr_payment/system.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'navigations.dart';
 
@@ -33,15 +30,17 @@ class TransactionsPage extends StatefulWidget {
 
 class Transaction {
   final int id;
+  final String paypalId;
   final String transactionDesc;
   final String sellerName;
   final double amount;
 
-  Transaction({this.id, this.transactionDesc, this.amount, this.sellerName});
+  Transaction({this.id, this.paypalId, this.transactionDesc, this.amount, this.sellerName});
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'],
+      paypalId: json['paypal_id'],
       transactionDesc: json['transaction_desc'],
       sellerName: json['seller_name'],
       amount: json['amount'],
@@ -50,7 +49,7 @@ class Transaction {
 
   @override
   String toString() {
-    return 'Transaction{id: $id, transactionDesc: $transactionDesc, sellerName: $sellerName, amount: $amount}';
+    return 'Transaction{id: $id, paypalId: $paypalId, transactionDesc: $transactionDesc, sellerName: $sellerName, amount: $amount}';
   }
 }
 
@@ -181,7 +180,7 @@ class CheckTransaction extends StatelessWidget {
                   color: Colors.lightBlue,
                   textColor: Colors.white,
                   onPressed: () {
-                    acceptTransaction(context, transaction.id);
+                    acceptTransaction(context, transaction.paypalId);
                   },
                 )
               ],
@@ -195,11 +194,17 @@ class CheckTransaction extends StatelessWidget {
   }
 
   void acceptTransaction(context, id) async {
-    var response = await Session.post(
-        "/transactions/accept",
-        jsonEncode(<String, String>{'id': id.toString()}));
-    if (response.statusCode == 201) {
-      navigateToSystem(context);
+//    var response = await Session.post(
+//        "/transactions/accept",
+//        jsonEncode(<String, String>{'id': id.toString()}));
+//    if (response.statusCode == 201) {
+//      navigateToSystem(context);
+//    }
+    var url = 'https://www.sandbox.paypal.com/checkoutnow?token=$id';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
     }
   }
 }
