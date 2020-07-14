@@ -13,8 +13,6 @@ from flaskr.db import DB
 import qrcode
 from cryptography.fernet import Fernet
 
-from errors import ApplicationError
-
 key_file = open('qrpayment.key', 'rb')
 key = key_file.read()
 fernet = Fernet(key)
@@ -48,7 +46,7 @@ class Transaction:
             )
             row = db.fetchone()
             if row is None:
-                raise ApplicationError("Transaction doesnt exist", 404)
+                return "Not found", 404
             return Transaction(*row)
 
 
@@ -179,3 +177,7 @@ def list():
             (g.account['id'], g.account['id'])
         )
         return jsonify(db.fetchall())
+
+@bp.route('/loadfunds', methods = ['GET'])
+def load_funds():
+    return render_template('load_money.html')
