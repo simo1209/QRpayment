@@ -10,6 +10,7 @@ from werkzeug.exceptions import abort
 from flaskr.auth import login_required
 from flaskr.db import DB
 
+import pprint
 import qrcode
 from cryptography.fernet import Fernet
 
@@ -19,6 +20,7 @@ fernet = Fernet(key)
 
 bp = Blueprint('transactions', __name__, url_prefix='/transactions')
 
+pp = pprint.PrettyPrinter(indent=4)
 
 class Transaction:
     def __init__(self, id, buyer_id, seller_id, transaction_desc, status, time_completed, amount):
@@ -36,7 +38,7 @@ class Transaction:
             db.execute('SELECT * FROM transactions;')
             rows = db.fetchall()
             return [Transaction(*row) for row in rows]
-    
+
     @staticmethod
     def find(id):
         with DB() as db:
@@ -45,10 +47,27 @@ class Transaction:
                 (id,)
             )
             row = db.fetchone()
-            if row is None:
-                return "Not found", 404
             return Transaction(*row)
 
+    def save(self):
+        with DB() as db:
+            values = (
+                self.buyer_id,
+                self.seller_id,
+                self.transaction_desc,
+                self.status,
+                self.amount,
+                self.id
+            )
+            db.execute(
+                '''UPDATE transactions
+                SET buyer_id = ?, seller_id = ?, transaction_desc = ?, status = ?, amount = ?
+                WHERE id = ?''', values)
+            return self
+
+    def delete(self):
+        with DB() as db:
+            db.execute('DELETE FROM transactions WHERE id = ?', (self.id,))
 
 
 @bp.route('/create', methods=['POST'])
@@ -68,10 +87,12 @@ def create():
             db.execute("INSERT INTO transactions(seller_id, transaction_desc, amount, status) VALUES (%s, %s, %s, 'Pending') RETURNING id;",
                        (g.account['id'], transcation_desc, amount))
             id = db.fetchone()['id']
-            code = ('QRpayment:{}'.format(id)).encode()
-            img = qrcode.make(fernet.encrypt(code))
-            img.save('qr-codes/{}.png'.format(id))
-            return '/transactions/{}'.format(id), 201
+            if id is not None:
+                code = ('QRpayment:{}'.format(id)).encode()
+                img = qrcode.make(fernet.encrypt(code))
+                print('saving qr code')
+                img.save('{}.png'.format(id))
+                return '/transactions/{}'.format(id), 201
     return error, 400
 
 
@@ -89,7 +110,7 @@ def transaction_code(transaction_id):
         if transaction is not None:
             if g.account['id'] != transaction['seller_id']:
                 return 'Unathorized', 403
-            return send_file('../qr-codes/{}.png'.format(t_id))
+            return send_file('{}.png'.format(transaction_id))
     return 'Id is invalid', 400
 
 
@@ -164,6 +185,25 @@ def accept():
             return jsonify({'balance': (account_balance-transaction_amount)}), 201
     return error, 400
 
+@bp.route('/authorize', methods=['POST'])
+def paypal_authorize():
+    order = request.json
+    pp.pprint(order)
+    if order and order['event_type'] == 'CHECKOUT.ORDER.APPROVED':
+        resource = order['resource']
+        pp.pprint(resource)
+        print(resource['id'])
+        payer = resource['payer']
+        payer_email = payer['email_address']
+        amount = resource['amount']
+        print(payer_email)
+        with DB() as db:
+            db.execute('''UPDATE accounts SET 
+                balance = balance + %s
+                WHERE email = %s;''',
+                [float(amount['value']), payer_email])
+        return "Successful", 200
+    return "Failiure", 400
 
 @bp.route('/list', methods=['GET'])
 @login_required
@@ -171,7 +211,7 @@ def list():
     with DB() as db:
         db.execute(
             '''SELECT transactions.id, transactions.transaction_desc, transactions.amount, 
-                accounts.first_name AS seller_name
+                accounts.first_name AS seller_name, transactions.status
                 FROM transactions LEFT JOIN accounts on transactions.seller_id = accounts.id 
                 WHERE buyer_id = %s OR seller_id = %s;''',
             (g.account['id'], g.account['id'])
@@ -181,3 +221,7 @@ def list():
 @bp.route('/loadfunds', methods = ['GET'])
 def load_funds():
     return render_template('load_money.html')
+
+@bp.route('/loadfundcomplete', methods = ['GET'])
+def load_funds_complete():
+    return render_template('load_money_complete.html')
