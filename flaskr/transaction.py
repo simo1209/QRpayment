@@ -189,19 +189,30 @@ def accept():
 def paypal_authorize():
     order = request.json
     pp.pprint(order)
+    print('\n')
     if order and order['event_type'] == 'CHECKOUT.ORDER.APPROVED':
         resource = order['resource']
         pp.pprint(resource)
         print(resource['id'])
         payer = resource['payer']
         payer_email = payer['email_address']
-        amount = resource['amount']
+        print('Unit')
+        purchase_unit = resource['purchase_units'][0]
+        print(purchase_unit)
+
+        amount = purchase_unit['amount']
+        print('Amount')
+        print(amount)
+
+        value = amount['value']
+
         print(payer_email)
+        print('Updating balance')
         with DB() as db:
             db.execute('''UPDATE accounts SET 
                 balance = balance + %s
                 WHERE email = %s;''',
-                [float(amount['value']), payer_email])
+                [value, payer_email] )
         return "Successful", 200
     return "Failiure", 400
 
