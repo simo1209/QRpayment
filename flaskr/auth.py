@@ -48,28 +48,29 @@ def register():
         return error, 400
 
 
-@bp.route('/login', methods=['POST'])
+@bp.route('/login', methods=['GET','POST'])
 def login():
-    email = request.authorization['username']
-    password = request.authorization['password']
-    error = None
+    if request.method == 'GET':
+        return render_template('login.html')
+    elif request.method == 'POST':
+        email = request.authorization['username']
+        password = request.authorization['password']
+        error = None
 
-    with DB() as db:
-        db.execute(
-            'SELECT * FROM accounts WHERE email = %s', (email,)
-        )
-        account = db.fetchone()
+        with DB() as db:
+            db.execute(
+                'SELECT * FROM accounts WHERE email = %s', (email,)
+            )
+            account = db.fetchone()
 
-    if account is None:
-        error = 'Incorrect email.'
-    elif not check_password_hash(account['password'], password):
-        error = 'Incorrect password.'
+        if account is None or not check_password_hash(account['password'], password):
+            error = 'Incorrect email or password.'
 
-    if error is None:
-        session.clear()
-        session['account_id'] = account['id']
-        return 'Successful', 200
-    return error, 401
+        if error is None:
+            session.clear()
+            session['account_id'] = account['id']
+            return 'Successful', 200
+        return error, 401
 
 
 @bp.before_app_request

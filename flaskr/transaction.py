@@ -18,6 +18,8 @@ key_file = open('qrpayment.key', 'rb')
 key = key_file.read()
 fernet = Fernet(key)
 
+required_interval = 1 # Days required between deposits
+
 bp = Blueprint('transactions', __name__, url_prefix='/transactions')
 
 pp = pprint.PrettyPrinter(indent=4)
@@ -210,7 +212,8 @@ def paypal_authorize():
         print('Updating balance')
         with DB() as db:
             db.execute('''UPDATE accounts SET 
-                balance = balance + %s
+                balance = balance + %s,
+                last_deposit = current_date
                 WHERE email = %s;''',
                 [value, payer_email] )
         return "Successful", 200
@@ -230,7 +233,14 @@ def list():
         return jsonify(db.fetchall())
 
 @bp.route('/loadfunds', methods = ['GET'])
+@login_required
 def load_funds():
+    with DB() as db:
+        db.execute('SELECT current_date - last_deposit as last_deposit FROM accounts WHERE id = %s',
+        [g.account['id']])
+        interval = db.fetchone()['last_deposit']
+        if int(interval) < required_interval:
+            return render_template('deposit_error.html', error="Already depositted today.")
     return render_template('load_money.html')
 
 @bp.route('/loadfundcomplete', methods = ['GET'])
