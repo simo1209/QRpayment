@@ -8,6 +8,7 @@ from . import db
 import decimal
 import flask.json
 
+
 class CustomJSONEncoder(flask.json.JSONEncoder):
 
     def default(self, obj):
@@ -46,5 +47,8 @@ def create_app(test_config=None):
 
     from . import transaction
     app.register_blueprint(transaction.bp)
+
+    from . import admin
+    app.register_blueprint(admin.bp)
 
     return app

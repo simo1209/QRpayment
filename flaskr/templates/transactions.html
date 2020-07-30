@@ -1,0 +1,48 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions</title>
+    <style>
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+    }
+    </style>
+</head>
+<body>
+    
+<h2>HTML Table</h2>
+
+<table>
+  <tr>
+    <th>Date</th>
+    <th>Description</th>
+    <th>Buyer</th>
+    <th>Seller</th>
+    <th>Amount</th>
+  </tr>
+  {% for transaction in transactions %}
+  <tr>
+      <td>{{transaction['time_completed']}}</td>
+      <td>{{transaction['description']}}</td>
+      <td>{{transaction['buyer']}}</td>
+      <td>{{transaction['seller']}}</td>
+      <td>{{transaction['amount']}}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+</body>
+</html>
